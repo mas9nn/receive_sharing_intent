@@ -144,9 +144,11 @@ open class RSIShareViewController: SLComposeServiceViewController {
     private func handleMedia(
         forUIImage image: UIImage, type: SharedMediaType, index: Int, content: NSExtensionItem
     ) {
+        // Use a unique filename for each image
+        let uniqueImageName = "TempImage_\(UUID().uuidString).png"
         let tempPath = FileManager.default.containerURL(
             forSecurityApplicationGroupIdentifier: appGroupId)!.appendingPathComponent(
-                "TempImage.png")
+                uniqueImageName)
         if self.writeTempFile(image, to: tempPath) {
             let newPathDecoded = tempPath.absoluteString.removingPercentEncoding!
             sharedMedia.append(
@@ -166,7 +168,8 @@ open class RSIShareViewController: SLComposeServiceViewController {
     private func handleMedia(
         forFile url: URL, type: SharedMediaType, index: Int, content: NSExtensionItem
     ) {
-        let fileName = getFileName(from: url, type: type)
+        // Make filename unique by appending a UUID before the extension
+        let fileName = getUniqueFileName(from: url, type: type)
         let newPath = FileManager.default.containerURL(
             forSecurityApplicationGroupIdentifier: appGroupId)!.appendingPathComponent(fileName)
 
@@ -339,6 +342,32 @@ open class RSIShareViewController: SLComposeServiceViewController {
     private func toData(data: [SharedMediaFile]) -> Data {
         let encodedData = try? JSONEncoder().encode(data)
         return encodedData!
+    }
+
+    // Add a helper to generate a unique filename for files
+    private func getUniqueFileName(from url: URL, type: SharedMediaType) -> String {
+        let originalName = url.lastPathComponent
+        let uuid = UUID().uuidString
+        if originalName.isEmpty {
+            switch type {
+            case .image:
+                return "\(uuid).png"
+            case .video:
+                return "\(uuid).mp4"
+            case .text:
+                return "\(uuid).txt"
+            default:
+                return uuid
+            }
+        }
+        // Insert uuid before the extension
+        let ext = url.pathExtension
+        let base = (originalName as NSString).deletingPathExtension
+        if ext.isEmpty {
+            return "\(base)_\(uuid)"
+        } else {
+            return "\(base)_\(uuid).\(ext)"
+        }
     }
 }
 
